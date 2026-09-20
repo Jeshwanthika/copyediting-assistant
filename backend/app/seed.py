@@ -8,7 +8,7 @@ Usage (from the backend/ folder):
 import argparse
 
 from app.database import DATABASE_URL, Base, SessionLocal, engine, init_db
-from app.services.seed_service import seed_rules
+from app.services.seed_service import seed_examples, seed_rules
 
 
 def main() -> None:
@@ -28,11 +28,13 @@ def main() -> None:
     init_db()
     with SessionLocal() as db:
         result = seed_rules(db, update=args.update)
+        examples_added = seed_examples(db)
     print(f"Database: {DATABASE_URL}")
     print(
         f"Rules inserted: {result.inserted}, updated: {result.updated}, "
         f"unchanged: {result.unchanged}"
     )
+    print(f"Examples added: {examples_added}")
 
 
 if __name__ == "__main__":

@@ -46,7 +46,10 @@ def get_db() -> Iterator[Session]:
 
 
 def init_db() -> None:
-    """Create all tables if they do not exist yet."""
+    """Create missing tables, then upgrade existing ones if a model gained columns."""
     import app.models  # noqa: F401  (registers the models on Base)
 
     Base.metadata.create_all(bind=engine)
+    from app.migrations import run_migrations
+
+    run_migrations(engine)  # upgrade databases created by an earlier stage

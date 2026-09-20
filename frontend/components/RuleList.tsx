@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import StatusBadge from "@/components/StatusBadge";
 import { getRules } from "@/lib/api";
 import type { Rule } from "@/types";
 
@@ -42,7 +43,7 @@ export default function RuleList() {
             <td>{rule.escalation ?? "None stated"}</td>
             <td>{rule.source}</td>
             <td>
-              <span className={`badge ${rule.status}`}>{rule.status}</span>
+              <StatusBadge status={rule.status} />
             </td>
             <td>{rule.version}</td>
           </tr>

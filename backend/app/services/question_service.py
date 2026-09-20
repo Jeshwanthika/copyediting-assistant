@@ -12,7 +12,7 @@ from app.services import answer_builder, rule_engine, rule_service
 
 def answer_question(db: Session, data: QuestionCreate) -> QuestionAnswerResponse:
     """Find the matching rule, save the question with the match, and return the answer."""
-    rules = rule_service.list_rules(db)
+    rules = rule_service.list_matchable_rules(db)  # superseded rules are never used
     result = rule_engine.match_question(data.question_text, rules)
     rule = result.best.rule if result.best else None
 
@@ -22,11 +22,12 @@ def answer_question(db: Session, data: QuestionCreate) -> QuestionAnswerResponse
         matched_rule_id=rule.id if rule else None,
         category=data.category or (rule.category if rule else None),
     )
+    examples = rule_service.list_examples(db, rule.id) if rule else []
     return QuestionAnswerResponse(
         **_question_fields(question),
         question_id=question.id,
         matched_rule=_matched_rule(rule),
-        answer=answer_builder.build_answer(result),
+        answer=answer_builder.build_answer(result, examples),
     )
 
 
@@ -78,3 +79,14 @@ def save_feedback(db: Session, data: FeedbackCreate) -> Feedback:
     db.commit()
     db.refresh(feedback)
     return feedback
+
+
+def list_feedback(
+    db: Session, feedback_type: str | None = None, question_id: int | None = None
+) -> list[Feedback]:
+    query = select(Feedback).order_by(Feedback.id.desc())
+    if feedback_type:
+        query = query.where(Feedback.feedback_type == feedback_type)
+    if question_id is not None:
+        query = query.where(Feedback.question_id == question_id)
+    return list(db.scalars(query))

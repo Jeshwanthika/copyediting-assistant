@@ -20,6 +20,12 @@ class CandidateRule(BaseModel):
     rule_text: str
 
 
+class AnswerExample(BaseModel):
+    input_text: str
+    correct_output: str
+    explanation: str | None
+
+
 class Answer(BaseModel):
     matched: bool
     match_status: Literal["matched", "no_match", "ambiguous"]
@@ -30,9 +36,15 @@ class Answer(BaseModel):
     rule_topic: str | None
     source: str | None
     status: str | None
-    # Shown whenever the rule is not yet confirmed against the official style manual.
+    # Says how far the rule can be trusted: draft, reviewed, confirmed or superseded.
     status_notice: str | None
+    # False when a matched rule is missing required information (see rule_completeness.py).
+    rule_complete: bool | None  # None when no rule matched
+    missing_fields: list[str]
+    incomplete_notice: str | None
+    condition: str | None
     exception: str | None
+    examples: list[AnswerExample]
     confidence: float  # 0.0 to 1.0 keyword-match strength; 0.0 when nothing matched
     matched_terms: list[str]
     escalation_required: bool

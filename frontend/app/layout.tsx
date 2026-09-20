@@ -13,7 +13,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body>
         <nav>
           <Link href="/">Ask</Link>
-          <Link href="/rules">Draft rules</Link>
+          <Link href="/rules">Rules</Link>
+          <Link href="/review">Review (leads)</Link>
         </nav>
         <main>{children}</main>
       </body>

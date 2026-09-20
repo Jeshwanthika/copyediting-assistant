@@ -1,9 +1,14 @@
 """Turn a rule-engine result into the structured answer shown to the trainee.
 
-Everything here comes from the matched rule's stored fields. Nothing is invented:
-where a rule has no `action` stored, a generic instruction is used instead.
+Everything here comes from the matched rule's stored fields. Nothing is invented.
+If the matched rule is incomplete (see rule_completeness.py) the answer says so and
+sends the trainee to the style manual or a lead; a missing action is never filled in.
 """
-from app.schemas import Answer, CandidateRule
+from typing import Sequence
+
+from app.models import Example, status_notice
+from app.schemas import Answer, AnswerExample, CandidateRule
+from app.services.rule_completeness import check_completeness
 from app.services.rule_engine import Candidate, MatchResult, MatchStatus
 
 NO_MATCH_DECISION = "No approved rule matched this question."
@@ -16,39 +21,50 @@ AMBIGUOUS_DECISION = (
 AMBIGUOUS_ACTION = "Review the possible rules below, or raise a query with a lead."
 AMBIGUOUS_ESCALATION = "Multiple rules may apply and the system cannot choose between them."
 
-DEFAULT_ACTION = (
-    "Apply this rule as written. If your case does not clearly fit it, "
-    "check the style manual or raise a query with a lead."
-)
-
-DRAFT_NOTICE = (
-    "This is draft internal team guidance. It has not yet been confirmed "
-    "against the official style manual."
-)
+INCOMPLETE_NOTICE = "Guidance found, but this rule is incomplete."
+INCOMPLETE_ACTION = "Check the style manual or raise the question with a lead."
 
 
-def build_answer(result: MatchResult) -> Answer:
+def build_answer(result: MatchResult, examples: Sequence[Example] = ()) -> Answer:
+    """`examples` are the matched rule's examples (empty if it has none)."""
     if result.status == MatchStatus.MATCHED and result.best is not None:
-        return _matched_answer(result.best, result.confidence)
+        return _matched_answer(result.best, result.confidence, examples)
     if result.status == MatchStatus.AMBIGUOUS:
         return _ambiguous_answer(result.candidates)
     return _no_match_answer()
 
 
-def _status_notice(status: str) -> str | None:
-    """Anything that is not explicitly approved is flagged to the trainee."""
-    return None if status == "approved" else DRAFT_NOTICE
-
-
-def _matched_answer(candidate: Candidate, confidence: float) -> Answer:
+def _matched_answer(candidate: Candidate, confidence: float, examples: Sequence[Example]) -> Answer:
     rule = candidate.rule
-    needs_query = bool(rule.escalation and rule.escalation.strip())
+    completeness = check_completeness(rule, len(examples))
     terms = ", ".join(f"\u201c{t}\u201d" for t in candidate.matched_terms)
+
+    if completeness.complete:
+        action = rule.action
+        escalation_required = bool(rule.escalation and rule.escalation.strip())
+        escalation_reason = (
+            f"The matched rule requires a query/lead confirmation: {rule.escalation}"
+            if escalation_required
+            else None
+        )
+        incomplete_notice = None
+    else:
+        # Never fill the gap: show what is recorded, and send the trainee onwards.
+        action = INCOMPLETE_ACTION
+        escalation_required = True
+        escalation_reason = (
+            f"This rule is incomplete (missing: {', '.join(completeness.missing_fields)}), "
+            "so it cannot be applied without checking."
+        )
+        if rule.escalation and rule.escalation.strip():
+            escalation_reason += f" The rule itself also says: {rule.escalation}"
+        incomplete_notice = INCOMPLETE_NOTICE
+
     return Answer(
         matched=True,
         match_status="matched",
         decision=rule.rule_text,
-        action=rule.action or DEFAULT_ACTION,
+        action=action,
         reason=(
             f"Your question matches rule {rule.rule_code} ({rule.topic}) "
             f"on the words: {terms}."
@@ -57,16 +73,24 @@ def _matched_answer(candidate: Candidate, confidence: float) -> Answer:
         rule_topic=rule.topic,
         source=rule.source,
         status=rule.status,
-        status_notice=_status_notice(rule.status),
+        status_notice=status_notice(rule.status),
+        rule_complete=completeness.complete,
+        missing_fields=completeness.missing_fields,
+        incomplete_notice=incomplete_notice,
+        condition=rule.condition,
         exception=rule.exception,
+        examples=[
+            AnswerExample(
+                input_text=e.input_text,
+                correct_output=e.correct_output,
+                explanation=e.explanation,
+            )
+            for e in examples
+        ],
         confidence=confidence,
         matched_terms=list(candidate.matched_terms),
-        escalation_required=needs_query,
-        escalation_reason=(
-            f"The matched rule requires a query/lead confirmation: {rule.escalation}"
-            if needs_query
-            else None
-        ),
+        escalation_required=escalation_required,
+        escalation_reason=escalation_reason,
         candidates=[],
     )
 
@@ -84,7 +108,12 @@ def _ambiguous_answer(candidates: tuple[Candidate, ...]) -> Answer:
         source=None,
         status=None,
         status_notice=None,
+        rule_complete=None,
+        missing_fields=[],
+        incomplete_notice=None,
+        condition=None,
         exception=None,
+        examples=[],
         confidence=0.0,
         matched_terms=[],
         escalation_required=True,
@@ -108,7 +137,12 @@ def _no_match_answer() -> Answer:
         source=None,
         status=None,
         status_notice=None,
+        rule_complete=None,
+        missing_fields=[],
+        incomplete_notice=None,
+        condition=None,
         exception=None,
+        examples=[],
         confidence=0.0,
         matched_terms=[],
         escalation_required=True,

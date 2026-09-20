@@ -25,7 +25,10 @@ def test_matching_question_returns_structured_answer(client):
     assert answer["action"].startswith("Keep the supplied author order.")
     assert answer["source"] == "Initial team guidance"
     assert answer["status"] == "draft"
-    assert "not yet been confirmed" in answer["status_notice"]
+    assert answer["status_notice"] == (
+        "Draft team guidance \u2014 not yet confirmed against the official style manual."
+    )
+    assert answer["rule_complete"] is True
     assert 0.5 <= answer["confidence"] <= 0.95
     assert answer["escalation_required"] is True
     assert answer["candidates"] == []
@@ -40,10 +43,19 @@ def test_matched_rule_and_category_are_saved(client):
     assert saved.category == "Author"
 
 
-def test_rule_without_escalation_does_not_require_it(client):
-    answer = ask(client, "What is a snippet?")["answer"]
+def test_complete_rule_without_escalation_does_not_require_it(fresh_client):
+    # AUTHOR-011 has no stored action yet; once a lead adds one it is complete.
+    rule_id = _rule_id(fresh_client, "AUTHOR-011")
+    fresh_client.patch(f"/rules/{rule_id}", json={"action": "Use the snippet as supplied."})
+
+    answer = ask(fresh_client, "What is a snippet?")["answer"]
+    assert answer["rule_complete"] is True
     assert answer["escalation_required"] is False
     assert answer["escalation_reason"] is None
+
+
+def _rule_id(client, code: str) -> int:
+    return next(r["id"] for r in client.get("/rules").json() if r["rule_code"] == code)
 
 
 def test_non_matching_question_says_no_rule_and_is_still_saved(client):

@@ -37,8 +37,10 @@ def test_intent_cases_cover_all_twenty_rules():
 
 
 @pytest.mark.parametrize("question, expected_code", INTENT_CASES)
-def test_question_matches_expected_rule(rules, seed_items, question, expected_code):
-    result = match_question(question, rules)
+def test_question_matches_expected_rule(complete_rules, seed_items, question, expected_code):
+    # Uses complete rules: matching and escalation are checked independently of
+    # completeness. Incomplete-rule behaviour is tested in test_answer_safety.py.
+    result = match_question(question, complete_rules)
 
     assert result.status == MatchStatus.MATCHED
     assert result.best.rule.rule_code == expected_code
@@ -51,23 +53,31 @@ def test_question_matches_expected_rule(rules, seed_items, question, expected_co
     assert answer.decision == seed["rule_text"]  # the decision is the stored rule, unchanged
     assert answer.source == "Initial team guidance"
     assert answer.status == "draft"
-    assert "not yet been confirmed" in answer.status_notice
+    assert answer.status_notice == (
+        "Draft team guidance \u2014 not yet confirmed against the official style manual."
+    )
     assert answer.escalation_required is (expected_code in RULES_WITH_ESCALATION)
     assert (answer.escalation_reason is not None) is (expected_code in RULES_WITH_ESCALATION)
 
 
-def test_action_comes_from_rule_when_stored_otherwise_generic(rules, seed_items):
-    stored = answer_builder.build_answer(match_question("Can I change the author order?", rules))
-    assert stored.action == seed_items["AUTHOR-009"]["action"]
-    assert stored.action != stored.decision  # decision and action are kept separate
-
-    generic = answer_builder.build_answer(match_question("What is a snippet?", rules))
-    assert generic.action == answer_builder.DEFAULT_ACTION
+def test_action_comes_from_the_rule(complete_rules, seed_items):
+    answer = answer_builder.build_answer(match_question("Can I change the author order?", complete_rules))
+    assert answer.action == seed_items["AUTHOR-009"]["action"]
+    assert answer.action != answer.decision  # decision and action are kept separate
 
 
-def test_escalation_reason_quotes_the_rule_field(rules, seed_items):
+def test_seed_rules_still_match_the_expected_rule_and_decision(rules, seed_items):
+    """Matching does not depend on completeness: the real seed rules still match."""
+    for question, code in INTENT_CASES:
+        result = match_question(question, rules)
+        assert result.status == MatchStatus.MATCHED, question
+        assert result.best.rule.rule_code == code, question
+        assert answer_builder.build_answer(result).decision == seed_items[code]["rule_text"]
+
+
+def test_escalation_reason_quotes_the_rule_field(complete_rules, seed_items):
     answer = answer_builder.build_answer(
-        match_question("How many corresponding authors can there be?", rules)
+        match_question("How many corresponding authors can there be?", complete_rules)
     )
     assert answer.escalation_required is True
     assert "requires a query/lead confirmation" in answer.escalation_reason
@@ -225,11 +235,10 @@ def test_rule_without_keyword_entry_still_matches_on_its_topic(rules):
     assert result.best.rule.rule_code == "AUTHOR-099"
 
 
-def test_approved_rules_have_no_draft_notice(rules):
+def test_confirmed_rules_show_confirmed_notice(rules):
     result = match_question("What is a snippet?", rules)
-    result.best.rule.status = "approved"
+    result.best.rule.status = "confirmed"
     try:
-        answer = answer_builder.build_answer(result)
-        assert answer.status_notice is None
+        assert answer_builder.build_answer(result).status_notice == "Confirmed guidance."
     finally:
         result.best.rule.status = "draft"
