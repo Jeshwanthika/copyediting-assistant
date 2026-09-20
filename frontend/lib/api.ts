@@ -1,4 +1,4 @@
-import type { Question, Rule } from "@/types";
+import type { QuestionAnswer, Rule } from "@/types";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
@@ -20,8 +20,8 @@ export function getRules(): Promise<Rule[]> {
   return request<Rule[]>("/rules");
 }
 
-export function createQuestion(questionText: string): Promise<Question> {
-  return request<Question>("/questions", {
+export function createQuestion(questionText: string): Promise<QuestionAnswer> {
+  return request<QuestionAnswer>("/questions", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ question_text: questionText }),

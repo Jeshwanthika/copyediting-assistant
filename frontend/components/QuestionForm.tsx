@@ -1,27 +1,27 @@
 "use client";
 
 import { useState } from "react";
+import AnswerCard from "@/components/AnswerCard";
 import { createQuestion } from "@/lib/api";
+import type { QuestionAnswer } from "@/types";
 
 export default function QuestionForm() {
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
+  const [result, setResult] = useState<QuestionAnswer | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   async function handleAsk() {
     if (!text.trim()) {
       setError("Please type a question first.");
-      setMessage(null);
+      setResult(null);
       return;
     }
     setLoading(true);
     setError(null);
-    setMessage(null);
+    setResult(null);
     try {
-      await createQuestion(text.trim());
-      setMessage("Question received. AI decision support will be added in the next stage.");
-      setText("");
+      setResult(await createQuestion(text.trim()));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
     } finally {
@@ -34,15 +34,22 @@ export default function QuestionForm() {
       <textarea
         value={text}
         onChange={(e) => setText(e.target.value)}
-        placeholder="e.g. How should I tag an author name with three given names?"
-        rows={5}
+        placeholder="e.g. Can I change the author order?"
+        rows={4}
         aria-label="Your question"
       />
       <button onClick={handleAsk} disabled={loading}>
-        {loading ? "Sending..." : "Ask"}
+        {loading ? "Checking..." : "Ask"}
       </button>
-      {message && <p className="success">{message}</p>}
       {error && <p className="error">{error}</p>}
+      {result && (
+        <div aria-live="polite">
+          <p className="asked">
+            <strong>Your question:</strong> {result.question_text}
+          </p>
+          <AnswerCard answer={result.answer} />
+        </div>
+      )}
     </div>
   );
 }

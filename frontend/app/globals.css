@@ -13,7 +13,7 @@ nav {
   border-bottom: 1px solid #ddd;
 }
 nav a { color: #1d4ed8; text-decoration: none; }
-main { max-width: 960px; margin: 0 auto; padding: 2rem; }
+main { max-width: 1100px; margin: 0 auto; padding: 2rem; }
 textarea {
   display: block;
   width: 100%;
@@ -40,3 +40,24 @@ table { width: 100%; border-collapse: collapse; background: #fff; }
 th, td { text-align: left; vertical-align: top; padding: 0.5rem; border-bottom: 1px solid #e5e5e5; }
 .badge { padding: 0.1rem 0.5rem; border-radius: 999px; font-size: 0.8rem; background: #eee; }
 .badge.draft { background: #fef3c7; color: #92400e; }
+.asked { margin-top: 1.5rem; }
+.answer {
+  margin-top: 0.5rem;
+  padding: 1rem 1.5rem;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+}
+.answer h3 { margin: 1rem 0 0.25rem; font-size: 0.95rem; text-transform: uppercase; color: #555; }
+.answer h3:first-child { margin-top: 0; }
+.answer p { margin: 0.25rem 0; }
+.answer-none { border-color: #b91c1c; }
+.answer-none h3, .answer-ambiguous h3 { text-transform: none; font-size: 1.2rem; color: #1a1a1a; }
+.answer-ambiguous { border-color: #d97706; }
+.notice {
+  padding: 0.5rem 0.75rem;
+  background: #fef3c7;
+  color: #92400e;
+  border-radius: 6px;
+}
+.escalation { font-weight: 600; color: #b91c1c; }

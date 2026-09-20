@@ -4,9 +4,10 @@ export default function RulesPage() {
   return (
     <>
       <h1>Draft rules</h1>
-      <p>
-        These rules come from initial team guidance and are <strong>not yet confirmed</strong>{" "}
-        against the official style manual.
+      <p className="notice">
+        These are <strong>draft internal team guidance</strong> rules. They have{" "}
+        <strong>not yet been confirmed</strong> against the official style manual and must not
+        be treated as official style-manual rules.
       </p>
       <RuleList />
     </>

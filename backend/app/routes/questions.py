@@ -2,15 +2,18 @@ from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.schemas import QuestionCreate, QuestionRead
+from app.schemas import QuestionAnswerResponse, QuestionCreate, QuestionRead
 from app.services import question_service
 
 router = APIRouter(tags=["questions"])
 
 
-@router.post("/questions", response_model=QuestionRead, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/questions", response_model=QuestionAnswerResponse, status_code=status.HTTP_201_CREATED
+)
 def create_question(data: QuestionCreate, db: Session = Depends(get_db)):
-    return question_service.save_question(db, data)
+    """Match the question to a rule, save it, and return the structured answer."""
+    return question_service.answer_question(db, data)
 
 
 @router.get("/questions", response_model=list[QuestionRead])

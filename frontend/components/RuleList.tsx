@@ -27,8 +27,10 @@ export default function RuleList() {
           <th>Code</th>
           <th>Topic</th>
           <th>Rule</th>
-          <th>Status</th>
+          <th>Escalation</th>
           <th>Source</th>
+          <th>Status</th>
+          <th>Version</th>
         </tr>
       </thead>
       <tbody>
@@ -37,10 +39,12 @@ export default function RuleList() {
             <td>{rule.rule_code}</td>
             <td>{rule.topic}</td>
             <td>{rule.rule_text}</td>
+            <td>{rule.escalation ?? "None stated"}</td>
+            <td>{rule.source}</td>
             <td>
               <span className={`badge ${rule.status}`}>{rule.status}</span>
             </td>
-            <td>{rule.source}</td>
+            <td>{rule.version}</td>
           </tr>
         ))}
       </tbody>

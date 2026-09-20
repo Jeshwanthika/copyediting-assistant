@@ -19,7 +19,8 @@ def test_get_rule_and_404(client):
 def test_create_and_list_question(client):
     response = client.post("/questions", json={"question_text": "How do I tag a nickname?"})
     assert response.status_code == 201
-    assert response.json()["matched_rule_id"] is None
+    # Stage 2: the question is matched to a rule (AUTHOR-008, nicknames) and saved with it.
+    assert response.json()["matched_rule"]["rule_code"] == "AUTHOR-008"
     assert any(q["id"] == response.json()["id"] for q in client.get("/questions").json())
 
 
