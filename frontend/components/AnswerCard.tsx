@@ -1,138 +1,29 @@
-import { confidenceLabel, sourceLabel } from "@/lib/format";
 import type { Answer } from "@/types";
 
-export default function AnswerCard({ answer }: { answer: Answer }) {
-  if (answer.match_status === "no_match") return <NoRuleFound />;
-  if (answer.match_status === "ambiguous") return <MultipleRules answer={answer} />;
-  return <MatchedAnswer answer={answer} />;
+export default function AnswerCard({answer}:{answer:Answer}){
+  if(answer.match_status==="no_match") return <div className="answer-row"><div className="assistant-avatar"><span className="material-symbols-outlined">smart_toy</span></div><article className="answer-card"><div className="answer-body"><div className="answer-section"><div className="answer-label">Editorial decision</div><p className="answer-decision">No approved rule matched this question with sufficient confidence.</p></div><div className="info-box"><span className="material-symbols-outlined">info</span><div><strong>Next action</strong><p>Check the style manual or raise the question with a lead.</p></div></div></div></article></div>;
+  if(answer.match_status==="ambiguous") return <div className="answer-row"><div className="assistant-avatar"><span className="material-symbols-outlined">smart_toy</span></div><article className="answer-card"><div className="answer-taxonomy"><div className="tax-left"><span className="tax-pill label-code"><span className="material-symbols-outlined" style={{fontSize:14,color:'var(--primary)'}}>warning</span> MULTIPLE RULES</span></div></div><div className="answer-body"><div className="answer-section"><div className="answer-label">Editorial decision</div><p className="answer-decision">Multiple approved rules may apply.</p></div><p>Please review the candidate rules below or raise the question with a lead.</p>{answer.candidates.map(c=><div className="info-box" key={c.rule_code}><span className="material-symbols-outlined">menu_book</span><div><strong>{c.rule_code} — {c.topic}</strong><p>{c.rule_text}</p></div></div>)}<Escalation reason="The rule engine could not determine one sufficiently clear match."/></div></article></div>;
+  const confirmed=answer.status==="confirmed";
+  const incomplete=answer.rule_complete===false;
+  return <div className="answer-row">
+    <div className="assistant-avatar"><span className="material-symbols-outlined">smart_toy</span></div>
+    <article className="answer-card">
+      <div className="answer-taxonomy"><div className="tax-left">
+        <span className="tax-pill label-code"><span className="material-symbols-outlined" style={{fontSize:14,color:'var(--primary)'}}>verified</span> Matched Rule: {answer.rule_code}</span>
+        <span className={`tax-pill label-code ${confirmed?'confirmed-pill':''}`}>{confirmed?"Confirmed Policy":(answer.status||"Draft")}</span>
+      </div><div className="match label-code"><span className="match-dot" /> {Math.round(answer.confidence*100)}% Semantic Match</div></div>
+      <div className="answer-body">
+        {answer.status_notice && <div className={`info-box ${confirmed?'':''}`}><span className="material-symbols-outlined">verified</span><div><strong>{answer.status_notice}</strong></div></div>}
+        {incomplete && <div className="info-box"><span className="material-symbols-outlined">warning</span><div><strong>{answer.incomplete_notice || "Guidance found, but this rule is incomplete."}</strong><p>Missing: {answer.missing_fields.join(", ") || "additional rule details"}.</p></div></div>}
+        <div className="answer-section"><div className="answer-label">Editorial decision</div><p className="answer-decision">{answer.decision}</p></div>
+        <div><div className="answer-label" style={{color:'var(--on-surface)'}}>Immediate operational action</div><div className="info-box" style={{marginTop:6}}><span className="material-symbols-outlined">task_alt</span><p>{answer.action}</p></div></div>
+        {answer.exception && <div><div className="answer-label" style={{color:'var(--on-surface)'}}>Exception</div><p style={{marginTop:6}}>{answer.exception}</p></div>}
+        <div><div className="answer-label" style={{color:'var(--on-surface)'}}>Scholarly &amp; ethical rationale</div><p style={{marginTop:6,color:'var(--on-surface-variant)'}}>{answer.reason}</p></div>
+        {answer.examples.length>0 && <div><div className="answer-label" style={{color:'var(--on-surface)'}}>Example</div><div className="info-box" style={{marginTop:6}}><span className="material-symbols-outlined">lightbulb</span><div>{answer.examples.map((e,i)=><div key={i}><strong>{e.input_text}</strong><p>{e.correct_output}</p>{e.explanation&&<p>{e.explanation}</p>}</div>)}</div></div></div>}
+        {answer.escalation_required && <Escalation reason={answer.escalation_reason || "This question should be checked with a lead."}/>} 
+      </div>
+      <div className="answer-footer"><div className="label-code">{answer.rule_code} · {answer.source || "Current knowledge base"}</div><div className="footer-actions"><button className="footer-link" type="button"><span className="material-symbols-outlined" style={{fontSize:15}}>thumb_up</span>Helpful</button><button className="footer-link" type="button"><span className="material-symbols-outlined" style={{fontSize:15}}>flag</span>Discrepancy</button><button className="footer-link" type="button"><span className="material-symbols-outlined" style={{fontSize:15}}>content_copy</span>Copy Guidance</button></div></div>
+    </article>
+  </div>
 }
-
-function NoRuleFound() {
-  return (
-    <section className="answer answer-none">
-      <h3>No matching rule found</h3>
-      <p>We could not find a sufficiently relevant rule in the current knowledge base.</p>
-      <p>Please check the style manual or raise the question with a lead.</p>
-    </section>
-  );
-}
-
-function MultipleRules({ answer }: { answer: Answer }) {
-  return (
-    <section className="answer answer-ambiguous">
-      <h3>Multiple rules may apply</h3>
-      <p>
-        We could not tell which rule fits best. Please review the rules below or raise a query
-        with a lead.
-      </p>
-      <ul>
-        {answer.candidates.map((rule) => (
-          <li key={rule.rule_code}>
-            <strong>
-              {rule.rule_code} — {rule.topic}
-            </strong>
-            <br />
-            {rule.rule_text}
-          </li>
-        ))}
-      </ul>
-      <p className="escalation">Raise a query / check with a lead.</p>
-    </section>
-  );
-}
-
-const FIELD_LABELS: Record<string, string> = {
-  rule_text: "rule text",
-  action: "action",
-  source: "source",
-  status: "status",
-};
-
-function MatchedAnswer({ answer }: { answer: Answer }) {
-  const incomplete = answer.rule_complete === false;
-  const confirmed = answer.status === "confirmed";
-
-  return (
-    <section className={`answer ${incomplete ? "answer-incomplete" : ""}`}>
-      {answer.status_notice && (
-        <p className={confirmed ? "notice notice-confirmed" : "notice"}>{answer.status_notice}</p>
-      )}
-
-      {incomplete && (
-        <>
-          <h3 className="incomplete-heading">{answer.incomplete_notice}</h3>
-          <p>
-            The rule text is shown below as recorded, but the missing information (
-            {answer.missing_fields.map((f) => FIELD_LABELS[f] ?? f).join(", ")}) has not been
-            provided yet.
-          </p>
-        </>
-      )}
-
-      {answer.condition && (
-        <>
-          <h3>Applies when</h3>
-          <p>{answer.condition}</p>
-        </>
-      )}
-
-      <h3>{incomplete ? "Rule text (as recorded)" : "Decision"}</h3>
-      <p>{answer.decision}</p>
-
-      <h3>Action</h3>
-      <p>{answer.action}</p>
-
-      {answer.exception && (
-        <>
-          <h3>Exception</h3>
-          <p>{answer.exception}</p>
-        </>
-      )}
-
-      <h3>Why</h3>
-      <p>{answer.reason}</p>
-
-      <h3>Example</h3>
-      {answer.examples.length === 0 ? (
-        <p>No example has been added yet.</p>
-      ) : (
-        <ul className="examples">
-          {answer.examples.map((example, index) => (
-            <li key={index}>
-              <p>
-                <strong>Question:</strong> {example.input_text}
-              </p>
-              <p>
-                <strong>Correct handling:</strong> {example.correct_output}
-              </p>
-              {example.explanation && (
-                <p>
-                  <strong>Explanation:</strong> {example.explanation}
-                </p>
-              )}
-            </li>
-          ))}
-        </ul>
-      )}
-
-      <h3>Source</h3>
-      <p>
-        {answer.source && sourceLabel(answer.source, answer.status)}
-        {answer.rule_code && ` (${answer.rule_code}: ${answer.rule_topic})`}
-      </p>
-
-      <h3>Confidence</h3>
-      <p>{confidenceLabel(answer.confidence)}</p>
-
-      <h3>Escalation</h3>
-      {answer.escalation_required ? (
-        <>
-          <p className="escalation">Raise a query / check with a lead.</p>
-          {answer.escalation_reason && <p>{answer.escalation_reason}</p>}
-        </>
-      ) : (
-        <p>No escalation indicated by this rule.</p>
-      )}
-    </section>
-  );
-}
+function Escalation({reason}:{reason:string}){return <div className="escalation-box"><div style={{display:'flex',gap:8,alignItems:'flex-start'}}><span className="material-symbols-outlined">priority_high</span><div><strong>Escalation Protocol Required</strong><p style={{color:'var(--on-surface-variant)',fontSize:13}}>{reason}</p></div></div><a className="escalate-btn" href="/queries">Escalate to Lead Query</a></div>}
