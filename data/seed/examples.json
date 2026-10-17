@@ -1,0 +1,8 @@
+[
+  {
+    "rule_code": "AUTHOR-009",
+    "input_text": "Can I reorder the authors?",
+    "correct_output": "Do not change the author order without author approval.",
+    "explanation": "Author order should not be changed without approval."
+  }
+]
