@@ -1,5 +1,7 @@
 # Redline — Copy editing virtual assistant
 
+**Live demo:** https://redline-app-hazel.vercel.app (API: https://redline-api-lake.vercel.app). Ask the project owner for the demo logins. The demo database resets whenever the server restarts, so edits, questions and uploaded PDFs are not kept. The deployment config is `vercel.json` and `backend/index.py`; redeploy with `vercel deploy --prod` from the repo root (API) and from `frontend/` (website).
+
 To rename the app, edit `frontend/lib/brand.ts` (name, logo letters, tagline).
 
 An internal training assistant for a journal copy-editing team. Trainees ask editorial questions (for example about author names, affiliations and corresponding authors), and the assistant will eventually find the relevant approved rule, give a clear decision, explain why, and say when a query must go to a lead.
