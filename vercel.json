@@ -1,0 +1,10 @@
+{
+  "builds": [
+    {
+      "src": "backend/index.py",
+      "use": "@vercel/python",
+      "config": { "includeFiles": "data/seed/**" }
+    }
+  ],
+  "routes": [{ "src": "/(.*)", "dest": "backend/index.py" }]
+}

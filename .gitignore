@@ -28,3 +28,5 @@ frontend/out/
 # Login signing key and uploaded PDFs (local data, not source)
 data/.auth_secret
 data/documents/
+.vercel
+.env*

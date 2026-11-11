@@ -1,0 +1,8 @@
+frontend
+backend/tests
+**/__pycache__
+**/venv
+**/.venv
+*.db
+data/documents
+data/.auth_secret
