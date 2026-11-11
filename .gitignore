@@ -29,4 +29,3 @@ frontend/out/
 data/.auth_secret
 data/documents/
 .vercel
-.env*
